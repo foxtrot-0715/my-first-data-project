@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  mdm_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mdm_backend_service
+    # ТА САМАЯ КИЛЛЕР-ФИЧА: Запуск через Gunicorn с 4 параллельными Uvicorn-воркерами!
+    command: >
+      gunicorn app.main:app 
+      --workers 4 
+      --worker-class uvicorn.workers.UvicornWorker 
+      --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./mdm_storage.db
+    volumes:
+      # Прокидываем базу данных наружу, чтобы она не стиралась при перезапуске Докера
+      - ./mdm_storage.db:/app/mdm_storage.db
+
+  mdm_frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mdm_frontend_service
+    command: streamlit run app/ui/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      # Магия Docker DNS: указываем фронтенду сетевое имя соседнего контейнера!
+      - API_BASE_URL=http://mdm_backend:8000/api/v1
+    depends_on:
+      - mdm_backend

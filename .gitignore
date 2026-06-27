@@ -2,3 +2,23 @@
 *.xlsx
 *.xls
 *:Zone.Identifier
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDE & OS Logs
+.idea/
+.vscode/
+.DS_Store
+*.log
+
+# Streamlit config
+.streamlit/credentials.toml
