@@ -41,5 +41,5 @@
 git clone [https://github.com/](https://github.com/)https://github.com/foxtrot-0715/my-first-data-project.git
 cd my-first-data-project
 
-# 2. Сборка и запуск эскадры в фоне
+# 2. Сборка и запуск в фоне
 docker compose up --build -d
