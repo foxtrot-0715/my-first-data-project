@@ -38,7 +38,7 @@
 
 ```bash
 # 1. Клонирование репозитория
-git clone [https://github.com/](https://github.com/)https://github.com/foxtrot-0715/my-first-data-project.git
+git clone [https://github.com/foxtrot-0715/my-first-data-project.git](https://github.com/foxtrot-0715/my-first-data-project.git)
 cd my-first-data-project
 
 # 2. Сборка и запуск в фоне
