@@ -1,12 +1,35 @@
 version: '3.8'
 
 services:
+  # === УЗЕЛ 1: БАЗА ДАННЫХ ===
+  postgres_db:
+    image: pgvector/pgvector:pg15
+    container_name: mdm_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: mdm_user
+      POSTGRES_PASSWORD: mdm_password
+      POSTGRES_DB: mdm_database
+    ports:
+      - "5432:5432"
+    volumes:
+      # Прокидываем данные PG в именованный volume для сохранности
+      - postgres_data:/var/lib/postgresql/data
+
+  # === УЗЕЛ 2: БРОКЕР СООБЩЕНИЙ ===
+  redis_broker:
+    image: redis:7-alpine
+    container_name: mdm_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # === УЗЕЛ 3: СЕРВЕРНАЯ ЧАСТЬ (API) ===
   mdm_backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: mdm_backend_service
-    # ТА САМАЯ КИЛЛЕР-ФИЧА: Запуск через Gunicorn с 4 параллельными Uvicorn-воркерами!
     command: >
       gunicorn app.main:app 
       --workers 4 
@@ -15,11 +38,32 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./mdm_storage.db
-    volumes:
-      # Прокидываем базу данных наружу, чтобы она не стиралась при перезапуске Докера
-      - ./mdm_storage.db:/app/mdm_storage.db
+      # Меняем SQLite на PostgreSQL. Магия Docker DNS сама найдет хост postgres_db
+      - DATABASE_URL=postgresql://mdm_user:mdm_password@postgres_db:5432/mdm_database
+      - CELERY_BROKER_URL=redis://redis_broker:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_broker:6379/0
+    depends_on:
+      - postgres_db
+      - redis_broker
 
+  # === УЗЕЛ 4: ФОНОВЫЙ ВОРКЕР (ML-ОБРАБОТКА) ===
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mdm_celery_worker
+    # ВАЖНО: Добавили --pool=solo для предотвращения зависаний PyTorch!
+    command: celery -A app.tasks worker --pool=solo --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://mdm_user:mdm_password@postgres_db:5432/mdm_database
+      - CELERY_BROKER_URL=redis://redis_broker:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_broker:6379/0
+    depends_on:
+      - postgres_db
+      - redis_broker
+      - mdm_backend
+
+  # === УЗЕЛ 5: ПОЛЬЗОВАТЕЛЬСКИЙ ИНТЕРФЕЙС ===
   mdm_frontend:
     build:
       context: .
@@ -29,7 +73,10 @@ services:
     ports:
       - "8501:8501"
     environment:
-      # Магия Docker DNS: указываем фронтенду сетевое имя соседнего контейнера!
       - API_BASE_URL=http://mdm_backend:8000/api/v1
     depends_on:
       - mdm_backend
+
+# Регистрация именованного тома для PostgreSQL
+volumes:
+  postgres_data:

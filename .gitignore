@@ -22,3 +22,22 @@ __pycache__/
 
 # Streamlit config
 .streamlit/credentials.toml
+
+# Databases
+*.db
+mdm_storage.db
+
+# Data files
+data/raw/*
+data/processed/*
+*.csv
+*.xlsx
+
+# Windows system files
+*:Zone.Identifier
+
+# Python cache & env (уже исключены из вывода, но должны быть тут)
+__pycache__/
+*.pyc
+.env
+venv/

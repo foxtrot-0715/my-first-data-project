@@ -40,3 +40,10 @@ class AuditLog(Base):
 
     def __repr__(self) -> str:
         return f"<AuditLog(id={self.id}, input='{self.raw_input[:15]}...', status='{self.review_status}')>"
+
+class GoldenRecord(Base):
+    """Эталонный справочник номенклатуры (Мастер-каталог)"""
+    __tablename__ = "golden_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    standard_name: Mapped[str] = mapped_column(String, index=True, comment="Чистое наименование")
